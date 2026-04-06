@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>群馬県央CS ダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --red: #ff4d6d;
+    --orange: #ff9f43;
+    --yellow: #ffd32a;
+    --green: #0be881;
+    --cyan: #00d2ff;
+    --blue: #4361ee;
+    --purple: #9b5de5;
+    --pink: #f72585;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; writing-mode: horizontal-tb; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(67,97,238,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(247,37,133,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(11,232,129,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .sidebar {
+    width: 210px; min-width: 210px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 20px 0;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 10;
+  }
+
+  .logo { padding: 0 16px 18px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .logo-badge {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
+    color: var(--cyan); background: rgba(0,210,255,0.1);
+    border: 1px solid rgba(0,210,255,0.2);
+    padding: 2px 7px; border-radius: 4px;
+    display: inline-block; margin-bottom: 7px;
+  }
+  .logo h1 { font-size: 12px; font-weight: 700; line-height: 1.5; }
+
+  .nav-section { padding: 0 10px; margin-bottom: 6px; }
+  .nav-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+    color: var(--muted); padding: 0 6px; margin-bottom: 3px; text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: 7px;
+    font-size: 12px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+    margin-bottom: 1px; white-space: nowrap;
+  }
+  .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--text); }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .d-cyan   { background: var(--cyan);   box-shadow: 0 0 6px var(--cyan); }
+  .d-red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+  .d-blue   { background: var(--blue);   box-shadow: 0 0 6px var(--blue); }
+  .d-green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+  .d-orange { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .d-purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+  .d-pink   { background: var(--pink);   box-shadow: 0 0 6px var(--pink); }
+  .d-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  .sidebar-footer { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--border); }
+  .user-info { display: flex; align-items: center; gap: 9px; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    font-family: 'Unbounded', sans-serif;
+  }
+  .user-name { font-size: 12px; font-weight: 700; }
+  .user-role { font-size: 10px; color: var(--muted); }
+
+  .main {
+    flex: 1; padding: 28px 28px 48px;
+    overflow-y: auto; position: relative; z-index: 1;
+  }
+
+  .header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; margin-bottom: 22px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .date-day {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 5px;
+  }
+  .greeting {
+    font-size: 21px; font-weight: 700;
+    background: linear-gradient(90deg, var(--cyan), var(--blue), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .header-chips { display: flex; gap: 10px; }
+  .chip {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 13px; text-align: center;
+  }
+  .chip-num { font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700; line-height: 1; }
+  .chip-lbl { font-size: 9px; color: var(--muted); margin-top: 3px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 320px;
+    gap: 14px;
+    align-items: start;
+  }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .card-red::before    { background: linear-gradient(90deg, var(--red), var(--orange)); }
+  .card-blue::before   { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+  .card-green::before  { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .card-purple::before { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+  .card-orange::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+  .card-cyan::before   { background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+
+  .card-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* 超重要タスク */
+  .urgent-list { display: flex; flex-direction: column; gap: 6px; }
+  .urgent-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--red); border-radius: 8px;
+    padding: 9px 11px; font-size: 11px; line-height: 1.5;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .urgent-item:hover { background: rgba(255,77,109,0.06); border-color: var(--red); }
+  .urgent-item.b-blue { border-left-color: var(--blue); }
+  .urgent-item.b-blue:hover { background: rgba(67,97,238,0.06); border-color: var(--blue); }
+  .urgent-item.b-orange { border-left-color: var(--orange); }
+  .urgent-item.b-orange:hover { background: rgba(255,159,67,0.06); border-color: var(--orange); }
+  .u-title { font-weight: 600; margin-bottom: 2px; }
+  .u-sub { font-size: 10px; color: var(--muted); }
+
+  /* Daily ToDo */
+  .todo-sec { margin-bottom: 12px; }
+  .todo-sec-title {
+    font-size: 10px; font-weight: 700; color: var(--cyan);
+    letter-spacing: 0.08em; margin-bottom: 6px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 4px 0; font-size: 11px; line-height: 1.5;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .todo-item:hover { opacity: 0.8; }
+  .todo-cb {
+    width: 13px; height: 13px; border-radius: 3px;
+    border: 1.5px solid var(--muted); flex-shrink: 0;
+    margin-top: 2px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; cursor: pointer;
+  }
+  .todo-item.checked .todo-cb { background: var(--green); border-color: var(--green); }
+  .todo-item.checked .todo-cb::after { content: '✓'; font-size: 8px; color: #0d0f14; font-weight: 700; }
+  .todo-item.checked .todo-text { text-decoration: line-through; color: var(--muted); }
+
+  /* スケジュール */
+  .sch-list { display: flex; flex-direction: column; gap: 6px; }
+  .sch-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; background: var(--surface2);
+    border-radius: 9px; border: 1px solid var(--border); transition: all 0.15s;
+  }
+  .sch-item:hover { border-color: rgba(255,255,255,0.12); }
+  .sch-time { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--cyan); font-weight: 700; min-width: 40px; }
+  .sch-bar { width: 3px; border-radius: 2px; align-self: stretch; min-height: 16px; }
+  .sch-info { flex: 1; min-width: 0; }
+  .sch-title { font-size: 12px; font-weight: 500; }
+  .sch-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .sch-badge { font-size: 9px; padding: 2px 7px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+
+  /* シフト定期 */
+  .shift-list { display: flex; flex-direction: column; gap: 5px; }
+  .shift-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; background: var(--surface2);
+    border-radius: 7px; font-size: 11px; border: 1px solid var(--border);
+  }
+  .shift-icon { font-size: 12px; flex-shrink: 0; }
+  .shift-name { flex: 1; font-weight: 500; }
+  .shift-who { font-size: 10px; color: var(--muted); }
+
+  /* 職員 */
+  .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .staff-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 8px 10px; transition: all 0.15s;
+  }
+  .staff-card:hover { border-color: rgba(255,255,255,0.14); }
+  .staff-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .staff-av {
+    width: 25px; height: 25px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .staff-name { font-size: 11px; font-weight: 600; }
+  .staff-role { font-size: 9px; color: var(--muted); }
+  .stags { display: flex; gap: 3px; flex-wrap: wrap; }
+  .stag { font-size: 8px; padding: 2px 5px; border-radius: 4px; font-weight: 700; }
+
+  /* バー */
+  .bar-list { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-name { font-size: 11px; min-width: 42px; }
+  .bar-bg { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-val { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); min-width: 30px; text-align: right; }
+
+  /* ===== アコーディオン カテゴリ ===== */
+  .cat-grid { display: flex; flex-direction: column; gap: 6px; }
+
+  .cat-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 9px; overflow: hidden; transition: border-color 0.15s;
+  }
+  .cat-card:hover { border-color: rgba(255,255,255,0.14); }
+
+  .cat-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; cursor: pointer; user-select: none;
+    transition: background 0.15s;
+  }
+  .cat-header:hover { background: rgba(255,255,255,0.03); }
+
+  .cat-icon { font-size: 15px; flex-shrink: 0; }
+  .cat-name { flex: 1; font-size: 12px; font-weight: 600; }
+  .cat-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .cat-arrow {
+    font-size: 10px; color: var(--muted);
+    transition: transform 0.25s ease; flex-shrink: 0;
+  }
+  .cat-card.open .cat-arrow { transform: rotate(90deg); }
+
+  .cat-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    border-top: 0px solid var(--border);
+  }
+  .cat-card.open .cat-body {
+    max-height: 400px;
+    border-top: 1px solid var(--border);
+    padding: 8px 12px 10px;
+  }
+
+  .sub-list { display: flex; flex-direction: column; gap: 3px; }
+  .sub-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 6px; border-radius: 5px;
+    font-size: 11px; color: var(--muted);
+    transition: all 0.12s; cursor: default;
+  }
+  .sub-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .sub-item::before {
+    content: '📁'; font-size: 11px; flex-shrink: 0;
+  }
+  .sub-count {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* 人事インフォバナー */
+  .info-banner {
+    background: rgba(67,97,238,0.1);
+    border: 1px solid rgba(67,97,238,0.25);
+    border-radius: 9px; padding: 10px 13px;
+    margin-bottom: 10px;
+  }
+  .info-banner-title {
+    font-size: 10px; font-weight: 700; color: var(--blue);
+    letter-spacing: 0.08em; margin-bottom: 5px;
+  }
+  .info-banner-body { font-size: 11px; line-height: 1.7; }
+  .info-tag {
+    display: inline-block;
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    font-weight: 700; margin-right: 4px;
+    background: rgba(67,97,238,0.2); color: var(--blue);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-badge">CS WORKSPACE</div>
+    <h1>群馬県央CS<br>管理システム</h1>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">メイン</div>
+    <div class="nav-item active"><span class="nav-dot d-cyan"></span>🏠 ホーム</div>
+    <div class="nav-item"><span class="nav-dot d-red"></span>⭐ TODAYタスク</div>
+    <div class="nav-item"><span class="nav-dot d-blue"></span>🗓 スケジュール</div>
+    <div class="nav-item"><span class="nav-dot d-pink"></span>🔖 超重要・即効</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">業務</div>
+    <div class="nav-item"><span class="nav-dot d-purple"></span>👥 会議</div>
+    <div class="nav-item"><span class="nav-dot d-orange"></span>📮 回覧・通知・稟議書</div>
+    <div class="nav-item"><span class="nav-dot d-blue"></span>🚄 出張</div>
+    <div class="nav-item"><span class="nav-dot d-yellow"></span>💰 庶務</div>
+    <div class="nav-item"><span class="nav-dot d-green"></span>🌍 業務</div>
+    <div class="nav-item"><span class="nav-dot d-cyan"></span>🐐 農家関係</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">管理</div>
+    <div class="nav-item"><span class="nav-dot d-green"></span>👥 職員管理</div>
+    <div class="nav-item"><span class="nav-dot d-orange"></span>🗽 個別管理・勤怠</div>
+    <div class="nav-item"><span class="nav-dot d-pink"></span>👥 シフト・連絡網</div>
+    <div class="nav-item"><span class="nav-dot d-red"></span>📝 MEMO</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">フォルダ</div>
+    <div class="nav-item"><span class="nav-dot d-blue"></span>📂 コロナ関連</div>
+    <div class="nav-item"><span class="nav-dot d-purple"></span>📂 派遣社員</div>
+    <div class="nav-item"><span class="nav-dot d-cyan"></span>📂 コンプライアンス</div>
+    <div class="nav-item"><span class="nav-dot d-yellow"></span>📂 就業規則</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar">T</div>
+      <div>
+        <div class="user-name">TOMO / 副所長</div>
+        <div class="user-role">群馬県央CS</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <div class="header">
+    <div>
+      <div class="date-day" id="dateStr">MONDAY · APRIL 6, 2026</div>
+      <div class="greeting">おはようございます、TOMOさん 👋</div>
+    </div>
+    <div class="header-chips">
+      <div class="chip"><div class="chip-num" style="color:var(--red)">8</div><div class="chip-lbl">超重要タスク</div></div>
+      <div class="chip"><div class="chip-num" style="color:var(--orange)">4</div><div class="chip-lbl">今日の予定</div></div>
+      <div class="chip"><div class="chip-num" style="color:var(--green)">6</div><div class="chip-lbl">本日出勤</div></div>
+      <div class="chip"><div class="chip-num" style="color:var(--cyan)">23</div><div class="chip-lbl">Daily ToDo</div></div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 左：超重要 + カテゴリ（アコーディオン） -->
+    <div class="col">
+
+      <div class="card card-red">
+        <div class="card-title">🔖 超重要・即効タスク</div>
+        <div class="urgent-list">
+          <div class="urgent-item">
+            <div class="u-title">OP（伊佐）の追跡判断</div>
+            <div class="u-sub">忙しい・面倒などでスルーが多い → 要注意・継続監視</div>
+          </div>
+          <div class="urgent-item">
+            <div class="u-title">ST3 回収時間超過異常 12/28</div>
+            <div class="u-sub">貯乳量機器の不良。設定変更し使用中。調整依頼が必要</div>
+          </div>
+          <div class="urgent-item">
+            <div class="u-title">給水ポンプ制御盤異常 1/1</div>
+            <div class="u-sub">ポンプ3番 E02漏電・E07インバーター異常。エラー解除できずそのまま使用中</div>
+          </div>
+          <div class="urgent-item b-blue">
+            <div class="u-title">タブレット端末の購入</div>
+            <div class="u-sub">検査所に1台・5万円以内。関連生乳販連にも交渉中。窓口：水谷</div>
+          </div>
+          <div class="urgent-item b-blue">
+            <div class="u-title">フル契約について（川端・阿久澤）</div>
+            <div class="u-sub">2026/4/1〜 9:00-17:00に時間延長。社保問題も確認要</div>
+          </div>
+          <div class="urgent-item b-orange">
+            <div class="u-title">業務担当の見直し</div>
+            <div class="u-sub">ボイラー室フィルター管理・洗浄 → 担当：伊佐。毎月3回洗浄</div>
+          </div>
+          <div class="urgent-item b-orange">
+            <div class="u-title">受乳場 洗浄用タンク（オレンジ）</div>
+            <div class="u-sub">洗浄・汚れ落ちない場合は新品購入。パレット準備・コック確認</div>
+          </div>
+          <div class="urgent-item">
+            <div class="u-title">PD作成のタイミング</div>
+            <div class="u-sub">送乳車積み上がりに合わせて作成。受付サンプル多い時は他者に受付依頼</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 人事情報バナー -->
+      <div class="card card-blue">
+        <div class="card-title">🏢 人事・体制情報</div>
+        <div class="info-banner">
+          <div class="info-banner-title">📌 令和7年4月以降の人事変更</div>
+          <div class="info-banner-body">
+            <span class="info-tag">変更</span>職員1名＋派遣1名の予定 → <strong>派遣2名体制</strong>に変更<br>
+            <span class="info-tag">R7.4〜</span>全職員チェックリスト対象：松井・水谷・伊佐・山村・鈴木・川端・バグレイ・阿久澤・井部・島貫
+          </div>
+        </div>
+        <div class="info-banner" style="background:rgba(247,37,133,0.08);border-color:rgba(247,37,133,0.2);margin-bottom:0">
+          <div class="info-banner-title" style="color:var(--pink)">📌 品川牧場 バルクメンテナンス</div>
+          <div class="info-banner-body">
+            2025年4月21日以降に実施<br>
+            <span class="info-tag" style="background:rgba(247,37,133,0.2);color:var(--pink)">担当</span>井部・島貫・石井
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリ一覧 アコーディオン -->
+      <div class="card card-purple">
+        <div class="card-title">📂 カテゴリ一覧</div>
+        <div class="cat-grid">
+
+          <div class="cat-card" id="cat-memo">
+            <div class="cat-header" onclick="toggleCat('cat-memo')">
+              <span class="cat-icon">📝</span>
+              <span class="cat-name">MEMO</span>
+              <span class="cat-count">0</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-today">
+            <div class="cat-header" onclick="toggleCat('cat-today')">
+              <span class="cat-icon">⭐</span>
+              <span class="cat-name">TODAYタスク</span>
+              <span class="cat-count">3</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-meeting">
+            <div class="cat-header" onclick="toggleCat('cat-meeting')">
+              <span class="cat-icon">👥</span>
+              <span class="cat-name">会議</span>
+              <span class="cat-count">7</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">スタッフ会議 <span class="sub-count">複数回</span></div>
+                <div class="sub-item">担当者会議 <span class="sub-count">2024/4〜9</span></div>
+                <div class="sub-item">役職者会議 <span class="sub-count">3件</span></div>
+                <div class="sub-item">CS研修会 2025/3/17</div>
+                <div class="sub-item">職員会議（追加議題）</div>
+                <div class="sub-item">派遣職員会議 2025年3月</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-circular">
+            <div class="cat-header" onclick="toggleCat('cat-circular')">
+              <span class="cat-icon">📮</span>
+              <span class="cat-name">回覧・通知・稟議書</span>
+              <span class="cat-count">7</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">内部用稟議書（取り扱い）</div>
+                <div class="sub-item">フィルターレギュレーター稟議</div>
+                <div class="sub-item">フォークリフト稟議</div>
+                <div class="sub-item">乳販 労働契約書（令和6年度）</div>
+                <div class="sub-item">令和7年4月以降の人事</div>
+                <div class="sub-item">日報記載ルール</div>
+                <div class="sub-item">島貫さん育成状況</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-trip">
+            <div class="cat-header" onclick="toggleCat('cat-trip')">
+              <span class="cat-icon">🚄</span>
+              <span class="cat-name">出張</span>
+              <span class="cat-count">3</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">研修 <span class="sub-count">7アイテム</span></div>
+                <div class="sub-item">視察 <span class="sub-count">1アイテム</span></div>
+                <div class="sub-item">旅費計算 <span class="sub-count">PDF×2</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-affairs">
+            <div class="cat-header" onclick="toggleCat('cat-affairs')">
+              <span class="cat-icon">💰</span>
+              <span class="cat-name">庶務</span>
+              <span class="cat-count">6</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">済 <span class="sub-count">3アイテム</span></div>
+                <div class="sub-item">予算案 <span class="sub-count">1アイテム</span></div>
+                <div class="sub-item">Wi-Fiルーター SSID・パスワード</div>
+                <div class="sub-item">金庫（取り扱いPDF）</div>
+                <div class="sub-item">鍵付きケース <span class="sub-count">暗証番号131</span></div>
+                <div class="sub-item">現金・口座・請求書</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-farmer">
+            <div class="cat-header" onclick="toggleCat('cat-farmer')">
+              <span class="cat-icon">🐐</span>
+              <span class="cat-name">農家関係</span>
+              <span class="cat-count">8</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">クレーム <span class="sub-count">5アイテム</span></div>
+                <div class="sub-item">その他 <span class="sub-count">24アイテム</span></div>
+                <div class="sub-item">隔日集乳 <span class="sub-count">1アイテム</span></div>
+                <div class="sub-item">検査結果関係 <span class="sub-count">11アイテム</span></div>
+                <div class="sub-item">成分検査 <span class="sub-count">3アイテム</span></div>
+                <div class="sub-item">廃業 <span class="sub-count">4アイテム</span></div>
+                <div class="sub-item">名義変更 <span class="sub-count">6アイテム</span></div>
+                <div class="sub-item">連絡先 <span class="sub-count">2アイテム</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card" id="cat-ops">
+            <div class="cat-header" onclick="toggleCat('cat-ops')">
+              <span class="cat-icon">🌍</span>
+              <span class="cat-name">業務</span>
+              <span class="cat-count">19</span>
+              <span class="cat-arrow">▶</span>
+            </div>
+            <div class="cat-body">
+              <div class="sub-list">
+                <div class="sub-item">Excel <span class="sub-count">2アイテム</span></div>
+                <div class="sub-item">PC <span class="sub-count">5アイテム</span></div>
+                <div class="sub-item">データ管理 <span class="sub-count">5アイテム</span></div>
+                <div class="sub-item">運送会社 <span class="sub-count">17アイテム</span></div>
+                <div class="sub-item">各組合情報 <span class="sub-count">5アイテム</span></div>
+                <div class="sub-item">業務分担 <span class="sub-count">15アイテム</span></div>
+                <div class="sub-item">検査関係 <span class="sub-count">19アイテム</span></div>
+                <div class="sub-item">校正乳サンプリング <span class="sub-count">5アイテム</span></div>
+                <div class="sub-item">荒木係長 提出明細 <span class="sub-count">1アイテム</span></div>
+                <div class="sub-item">在庫管理 <span class="sub-count">3アイテム</span></div>
+                <div class="sub-item">施設 <span class="sub-count">24アイテム</span></div>
+                <div class="sub-item">受入工場（メーカー） <span class="sub-count">7アイテム</span></div>
+                <div class="sub-item">集乳 <span class="sub-count">6アイテム</span></div>
+                <div class="sub-item">送乳 <span class="sub-count">4アイテム</span></div>
+                <div class="sub-item">乳量管理 <span class="sub-count">6アイテム</span></div>
+                <div class="sub-item">入力 <span class="sub-count">1アイテム</span></div>
+                <div class="sub-item">備品・消耗品 <span class="sub-count">4アイテム</span></div>
+                <div class="sub-item">風味トレーニング <span class="sub-count">0アイテム</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 中央：Daily ToDo -->
+    <div class="col">
+      <div class="card card-cyan">
+        <div class="card-title">✅ Daily ToDo チェックリスト</div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">毎日</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">メールチェック</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">日報確認・入力</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">個体検査依頼書・受付台帳 ミス確認・各種集計</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">日量・残乳量・送乳配車確認 / Drop box入力</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">SNAP使用個数＆薬品名のデータ入力</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">成分検査データ入力</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">集乳車 乳量比較（受入乳量＋入力乳量）</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">ブリード検査 体細胞数比較</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">備品等の在庫確認と発注</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">物品購入申請書チェック・領収書</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">月初</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">通帳記帳</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">出納チェック（現金の現物付け合わせ）</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">SNAP購入明細確認 → 荒木係長へFAXで返信</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">依頼検査料金請求明細の集計 乳販荒木さんへメール</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">タイムカード締め・勤怠管理</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">毎月10日まで</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">庶務業務 経費支出伺い（現金）</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">庶務業務 経費支出伺い（預金）</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">毎月14日まで</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">庶務業務 経費支出伺い（請求）</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">毎月19〜24日</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">希望休集計・翌月シフト作成 ※25日に配布</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">月末</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">勤務シフトメール（所長・野上・野口・テンプスタッフ・テクノサービス）</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">野口CS出勤日数確認しホワイトボードへ</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">IDEXX返品用紙コピーorスキャン</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">薬品名入力（成分検査依頼書分）</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">庶務業務 Amazon振込 月末までに</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">その他・定期</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">個人面談</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">体細胞数・細菌数 個人指導</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">共有フォルダ 施設チェック</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">指定日</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">群馬明治シャーレ引き取り 14:00〜16:00</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">風味トレーニング</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">校正乳サンプリング</span></div>
+        </div>
+
+        <div class="todo-sec">
+          <div class="todo-sec-title">季節イベント</div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">暑熱対策 6月・7月・8月</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">年末年始手当 12/30〜1/3 5日間 1日2000円</span></div>
+          <div class="todo-item" onclick="this.classList.toggle('checked')"><div class="todo-cb"></div><span class="todo-text">被服費 1人10,000円 11月・12月・1月</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 右：スケジュール・職員・シフト -->
+    <div class="col">
+
+      <div class="card card-blue">
+        <div class="card-title">🗓 今日のスケジュール</div>
+        <div class="sch-list">
+          <div class="sch-item">
+            <div class="sch-time">08:30</div>
+            <div class="sch-bar" style="background:var(--green)"></div>
+            <div class="sch-info"><div class="sch-title">朝礼・申し送り</div><div class="sch-sub">全体・検査室</div></div>
+            <span class="sch-badge" style="background:rgba(11,232,129,0.15);color:var(--green)">完了</span>
+          </div>
+          <div class="sch-item">
+            <div class="sch-time">10:00</div>
+            <div class="sch-bar" style="background:var(--blue)"></div>
+            <div class="sch-info"><div class="sch-title">シフト最終確認</div><div class="sch-sub">山村・阿久澤と</div></div>
+            <span class="sch-badge" style="background:rgba(67,97,238,0.2);color:var(--blue)">進行中</span>
+          </div>
+          <div class="sch-item">
+            <div class="sch-time">13:00</div>
+            <div class="sch-bar" style="background:var(--orange)"></div>
+            <div class="sch-info"><div class="sch-title">関連会社定例</div><div class="sch-sub">Web会議</div></div>
+            <span class="sch-badge" style="background:rgba(255,159,67,0.15);color:var(--orange)">予定</span>
+          </div>
+          <div class="sch-item">
+            <div class="sch-time">15:30</div>
+            <div class="sch-bar" style="background:var(--purple)"></div>
+            <div class="sch-info"><div class="sch-title">月次ミーティング</div><div class="sch-sub">全職員参加</div></div>
+            <span class="sch-badge" style="background:rgba(155,93,229,0.2);color:var(--purple)">予定</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-orange">
+        <div class="card-title">📋 シフト定期スケジュール</div>
+        <div class="shift-list">
+          <div class="shift-item"><span class="shift-icon">🥛</span><span class="shift-name">校正乳サンプリング</span><span class="shift-who">所長・水谷</span></div>
+          <div class="shift-item"><span class="shift-icon">🧫</span><span class="shift-name">群馬明治シャーレ引き取り</span><span class="shift-who">水谷</span></div>
+          <div class="shift-item"><span class="shift-icon">👃</span><span class="shift-name">風味トレーニング</span><span class="shift-who">全員</span></div>
+          <div class="shift-item"><span class="shift-icon">🐄</span><span class="shift-name">群馬CS担当者会議</span><span class="shift-who">—</span></div>
+          <div class="shift-item"><span class="shift-icon">👥</span><span class="shift-name">STAFF会議（フル）</span><span class="shift-who">—</span></div>
+          <div class="shift-item"><span class="shift-icon">👥</span><span class="shift-name">STAFF会議（派遣）</span><span class="shift-who">—</span></div>
+          <div class="shift-item"><span class="shift-icon">🏢</span><span class="shift-name">職員会議</span><span class="shift-who">—</span></div>
+          <div class="shift-item"><span class="shift-icon">🔧</span><span class="shift-name">エコノマイザー洗浄</span><span class="shift-who">—</span></div>
+          <div class="shift-item"><span class="shift-icon">🔧</span><span class="shift-name">フィルター洗浄</span><span class="shift-who">毎月3回</span></div>
+        </div>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">👥 本日の職員状況</div>
+        <div class="staff-grid">
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#4361ee,#7209b7)">松</div><div><div class="staff-name">松井</div><div class="staff-role">所長</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(11,232,129,0.15);color:var(--green)">中番</span></div>
+          </div>
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#f72585,#7209b7)">山</div><div><div class="staff-name">山村</div><div class="staff-role">係長</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(255,77,109,0.15);color:var(--red)">OP</span></div>
+          </div>
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#ff9f43,#ff4d6d)">鈴</div><div><div class="staff-name">鈴木</div><div class="staff-role">職員</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(255,77,109,0.15);color:var(--red)">OP</span></div>
+          </div>
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#0be881,#00d2ff)">阿</div><div><div class="staff-name">阿久澤</div><div class="staff-role">非正規</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(255,182,193,0.2);color:#ffb6c1">フル</span></div>
+          </div>
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#00d2ff,#4361ee)">川</div><div><div class="staff-name">川端</div><div class="staff-role">非正規</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(255,182,193,0.2);color:#ffb6c1">フル</span></div>
+          </div>
+          <div class="staff-card">
+            <div class="staff-top"><div class="staff-av" style="background:linear-gradient(135deg,#ffd32a,#ff9f43)">圭</div><div><div class="staff-name">圭吾</div><div class="staff-role">非正規</div></div></div>
+            <div class="stags"><span class="stag" style="background:rgba(255,211,42,0.15);color:var(--yellow)">遅番</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">📊 今月OP・遅番 使用状況</div>
+        <div class="bar-list">
+          <div class="bar-row"><div class="bar-name">鈴木</div><div class="bar-bg"><div class="bar-fill" style="width:60%;background:linear-gradient(90deg,var(--red),var(--orange))"></div></div><div class="bar-val">9/15</div></div>
+          <div class="bar-row"><div class="bar-name">山村</div><div class="bar-bg"><div class="bar-fill" style="width:60%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div><div class="bar-val">3/5</div></div>
+          <div class="bar-row"><div class="bar-name">寺嶋</div><div class="bar-bg"><div class="bar-fill" style="width:70%;background:linear-gradient(90deg,var(--yellow),var(--orange))"></div></div><div class="bar-val">10/17</div></div>
+          <div class="bar-row"><div class="bar-name">伊井</div><div class="bar-bg"><div class="bar-fill" style="width:50%;background:linear-gradient(90deg,var(--purple),var(--pink))"></div></div><div class="bar-val">3/6</div></div>
+          <div class="bar-row"><div class="bar-name">久保田</div><div class="bar-bg"><div class="bar-fill" style="width:50%;background:linear-gradient(90deg,var(--green),var(--cyan))"></div></div><div class="bar-val">1/2</div></div>
+          <div class="bar-row"><div class="bar-name">石井</div><div class="bar-bg"><div class="bar-fill" style="width:50%;background:linear-gradient(90deg,var(--cyan),var(--blue))"></div></div><div class="bar-val">1/2</div></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // 日付表示
+  const d = new Date();
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  document.getElementById('dateStr').textContent =
+    `${days[d.getDay()]} · ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+
+  // アコーディオン
+  function toggleCat(id) {
+    const card = document.getElementById(id);
+    const body = card.querySelector('.cat-body');
+    if (!body) return; // サブフォルダなしのカードは何もしない
+    card.classList.toggle('open');
+  }
+</script>
+
+</body>
+</html>
